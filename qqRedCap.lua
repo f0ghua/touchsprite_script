@@ -9,7 +9,7 @@ Description:
 local version = 'v1.0.01'
 local _hr_x, _hr_y, _hr_c, _ho_x, _ho_y, _ho_c, _hc_x, _hc_y, _hc_c, _cs;
 local _hi_x, _hi_y, _hi_c;
-local g_t_table;
+local g_t_table, g_t_table_x;
 local r, processing = false, 0;
 local g_function_enable;
 
@@ -118,6 +118,10 @@ function p_init()
         _hi_x, _hi_y, _hi_c = 70, 420, 0xffedbf;
         _ho_x, _ho_y, _ho_c = 320, 715, 0xddbc84;
         _hc_x, _hc_y = 555, 170;
+        g_t_table_x = {
+            {260,  535, 0xcf3a50},
+            {260,  864, 0xc3304a},
+        }
         g_t_table = {
             {571,  146, 0xcf3a50},
             {424,  949, 0xdf8274},
@@ -147,7 +151,7 @@ function p_init()
         views = {
             {
                 ["type"] = "Label",
-                ["text"] = "微信抢红包"..version,
+                ["text"] = "qq抢红包"..version,
                 ["size"] = 18,
                 ["align"] = "center",
                 ["color"] = "0,0,255",
@@ -211,9 +215,17 @@ function _multi_color(array,s)
 end
 
 function handle_hongbao_received()
-	if _is_color(_hr_x, _hr_y, _hr_c, _cs) then
-		_click(_hr_x, _hr_y);
-		return true
+	-- if _is_color(_hr_x, _hr_y, _hr_c, _cs) then
+    if _multi_color(g_t_table_x, _cs) then
+        -- find yellow color in region, if found, the red has opened
+        local x, y = findColorInRegionFuzzy(0xe27966, 100, _hr_x-50, _hr_y-50, _hr_x+50, _hr_y);
+        wLog("test", "x = "..x..", y = "..y);
+        if x ~= -1 and y ~= -1 then
+            return false;
+        else
+            _click(_hr_x, _hr_y);
+            return true
+        end
 	else
 		return false
 	end
@@ -234,7 +246,7 @@ function handle_hongbao_open()
         if _is_color(_hi_x, _hi_y, _hi_c, _cs) then
             if (g_function_enable == "0") then
                 toast("程序延时中,请勿手点红包", 1);
-                mSleep(math.random(1000,3000));
+                mSleep(math.random(1500,3000));
                 _click(_hi_x, _hi_y);
             else
                 _click(_hi_x, _hi_y);
@@ -278,12 +290,17 @@ end
 --]]
 
 p_init();
+initLog("test", 0);
 
 while true do
 
-    r = handle_hongbao_received();
-    if r == true then
-		--mSleep(500);
+    while true do
+        r = handle_hongbao_received();
+        if r == true then
+            mSleep(500);
+            break;
+        end
+        mSleep(200);
     end
 
     r = handle_hongbao_open();
