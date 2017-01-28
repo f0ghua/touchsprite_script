@@ -6,152 +6,69 @@ Description:
 	_cs 	颜色相似度
 --]]
 
-local version = 'v1.0.01'
-local _hr_x, _hr_y, _hr_c, _ho_x, _ho_y, _ho_c, _hc_x, _hc_y, _hc_c, _cs;
-local _hi_x, _hi_y, _hi_c;
-local g_t_table, g_t_table_x;
-local r, processing = false, 0;
-local g_function_enable;
+local g_version = 'v1.0.01'
 
-function file_exists(path)
-    local f = io.open(file_name, "r")
-    return f ~= nil and f:close()
-end
+local g_degree = 99;
+local g_screenWidth, g_screenHeight;
+local g_rectLeft, g_rectRight, g_rectTop, g_rectBottom;
+local g_rectWidth, g_rectHeight;
 
-function read_serial_from_file(path)
-    local file = io.open(path,"r");
-    local serial = nil;
+local g_clWordInputX, g_clWordInputY, g_clWordInputColor;
+local g_clRedCloseX, g_clRedCloseY;
+local g_clTabelRedCloseValid;
+local g_clickDelay;
 
-    if file then
-        serial = file:read("*line");
-    end
-
-    return serial;
-end
-
-function write_serial_to_file(path, serial)
-    local file = io.open(path,"w");
-
-    if file then
-        rc = file:write(serial);
-    end
-
-    return rc;
-end
-
-function sn_ui_get()
-    local sz = require("sz")
-    local json = sz.json
-    local w,h = getScreenSize();
-    MyTable = {
-        ["style"] = "default",
-        ["width"] = w,
-        ["height"] = h,
-        ["config"] = "dlq_data1.dat",
-        ["timer"] = 300,
-        views = {
-            {
-                ["type"] = "Label",
-                ["text"] = "授权码设置",
-                ["size"] = 25,
-                ["align"] = "center",
-                ["color"] = "0,0,255",
-            },
-            {
-                ["type"] = "Edit",
-                ["prompt"] = "请输入授权码",
-                ["text"] = "",
-            },
-        }
-    }
-    local MyJsonString = json.encode(MyTable);
-    local ret, input = showUI(MyJsonString);
-
-    return input;
-end
-
-function serial_validate()
-    local sz = require("sz");
-    local key = "da0ye\'sdlq";
-    local str = sz.system.serialnumber()..key;
-    local cfg_file = "/var/mobile/Media/TouchSprite/config/dlq_sn.cfg";
-    local sn_stored = read_serial_from_file(cfg_file);
-    local sn_valid = string.sub(str:md5(), 17, 32);
-
-    -- dialog('str = "'..str..'", sn = "'..sn_valid..'"', 0);
-    -- dba9c0f94d5a351e 63c65e32f81328a9
-
-    if (sn_stored) and (sn_stored == sn_valid) then
-        return true;
-    end
-
-    input = sn_ui_get();
-    -- dialog(input);
-    if (input ~= "") and (input == sn_valid) then
-        write_serial_to_file(cfg_file, input);
-        return true;
-    end
-
---[[
-    dialog('"'..str..'" 的 16 进制编码为: <'..str:tohex()..'>', 0)
-    dialog('<'..str:tohex()..'> 转换成明文为: "'..str:tohex():fromhex()..'"', 0)
-    dialog('"'..str..'" 的 MD5 值是: '..str:md5(), 0)
-
-    local sn = string.sub(str:md5(), 17, 32);
-    dialog('MD5截取后为: "'..sn..'"', 0)
---]]
-    lua_exit();
-
-end
-
-function p_init()
-    local w, h;
+function appInit()
     local sz = require("sz");
     local json = sz.json;
-    local json_str;
+    local jsonStr;
     local ret1, ret2, ret3;
 
-    w,h = getScreenSize()
-    if (w+h) == (640+1136) then
+    g_screenWidth, g_screenHeight = getScreenSize()
+    if (g_screenWidth + g_screenHeight) == (640 + 1136) then
         -- iphone 5s
-        _hr_x, _hr_y, _hr_c = 260, 860, 0xc3304a;
-        _hi_x, _hi_y, _hi_c = 70, 420, 0xffedbf;
-        _ho_x, _ho_y, _ho_c = 320, 715, 0xddbc84;
-        _hc_x, _hc_y = 555, 170;
-        g_t_table_x = {
-            {260,  535, 0xcf3a50},
-            {260,  864, 0xc3304a},
-        }
-        g_t_table = {
-            {571,  146, 0xcf3a50},
-            {424,  949, 0xdf8274},
+        g_rectLeft, g_rectRight, g_rectTop, g_rectBottom = 123, 398, 535, 864;
+        g_rectWidth = g_rectRight - g_rectLeft;
+        g_rectHeight = g_rectBottom - g_rectTop;
+
+        g_clWordInputX, g_clWordInputY, g_clWordInputColor = 70, 420, 0xffedbf;
+        --_ho_x, _ho_y, _ho_c = 320, 715, 0xddbc84;
+        g_clRedCloseX, g_clRedCloseY = 554, 171;
+        g_clTabelRedCloseValid = {
+            {554, 171, 0x972438}, -- x
+            {424, 949, 0xdf8274} -- >
         };
-        _cs = 99;
-    elseif (w+h) == (1242+2208) then
+        g_degree = 99;
+--[[
+    elseif (g_screenWidth + g_screenHeight) == (1242 + 2208) then
         -- iphone 6 plus
-        _hr_x, _hr_y, _hr_c = 215, 1900, 0xfa9d3b;
         _ho_x, _ho_y, _ho_c = 620, 1330, 0xddbc84;
-        _hc_x, _hc_y = 90, 130;
-        g_t_table = {
+        g_clRedCloseX, g_clRedCloseY = 90, 130;
+        g_clTableRedRcvValid = {
+            {293,  535, 0xcf3a50},
+            {293,  864, 0xc3304a},
+        }
+        g_clTabelRedCloseValid = {
             {620, 260, 0xd84e43},
             {620, 480, 0xfffaf5},
         };
-        _cs = 99;
+        g_degree = 99;
+--]]
     else
         error("您的设备分辨率不被支持");
     end
 
-    ui_table = {
+    local uiTable = {
         ["style"]   = "default",
-        ["width"]   = w,
-        ["height"]  = h,
+        ["width"]   = g_screenWidth,
+        ["height"]  = g_screenHeight,
         ["config"]  = "dlq_data2.dat",
         ["timer"]   = 360,
 
         views = {
             {
                 ["type"] = "Label",
-                ["text"] = "qq抢红包"..version,
+                ["text"] = "qq抢红包"..g_version,
                 ["size"] = 18,
                 ["align"] = "center",
                 ["color"] = "0,0,255",
@@ -172,40 +89,35 @@ function p_init()
 --]]
         }
     }
-    json_str = json.encode(ui_table);
-    ret1, g_function_enable, ret2, ret3 = showUI(json_str);
+    jsonStr = json.encode(uiTable);
+    ret1, g_clickDelay, ret2, ret3 = showUI(jsonStr);
 end
 
-function _click(...)
-	touchDown(...)
-	touchUp(...)
+function xClick(...)
+    touchDown(...)
+    touchUp(...)
 end
 
-function _is_color(x, y, c, s)
-	local fl,abs = math.floor,math.abs
-	s = fl(0xff*(100-s)*0.01)
-	local r,g,b = fl(c/0x10000),fl(c%0x10000/0x100),fl(c%0x100)
-	local rr,gg,bb = getColorRGB(x,y)
-	if abs(r-rr)<s and abs(g-gg)<s and abs(b-bb)<s then
-		return true
-	end
+function isColor(x,y,c,s)
+    local fl,abs = math.floor,math.abs
+    s = fl(0xff*(100-s)*0.01)
+    local r,g,b = fl(c/0x10000),fl(c%0x10000/0x100),fl(c%0x100)
+    local rr,gg,bb = getColorRGB(x,y)
+    if abs(r-rr)<s and abs(g-gg)<s and abs(b-bb)<s then
+        return true
+    end
 end
 
-function _check_pos(x,y,c,cs)
-	if _is_color(x,y,c,cs) then
-		_click(x,y)
-	end
-end
-
-function _multi_color(array,s)
-    s = math.floor(0xff*(100-s)*0.01)
+function multiColor(arr,s)
+    local fl,abs = math.floor,math.abs
+    s = fl(0xff*(100-s)*0.01)
     keepScreen(true)
-    for var = 1, #array do
-        local lr,lg,lb = getColorRGB(array[var][1],array[var][2])
-        local r = math.floor(array[var][3]/0x10000)
-        local g = math.floor(array[var][3]%0x10000/0x100)
-        local b = math.floor(array[var][3]%0x100)
-        if math.abs(lr-r) > s or math.abs(lg-g) > s or math.abs(lb-b) > s then
+    for var = 1, #arr do
+        local lr,lg,lb = getColorRGB(arr[var][1],arr[var][2])
+        local r = fl(arr[var][3]/0x10000)
+        local g = fl(arr[var][3]%0x10000/0x100)
+        local b = fl(arr[var][3]%0x100)
+        if abs(lr-r) > s or abs(lg-g) > s or abs(lb-b) > s then
             keepScreen(false)
             return false
         end
@@ -214,88 +126,98 @@ function _multi_color(array,s)
     return true
 end
 
-function handle_hongbao_received()
-	-- if _is_color(_hr_x, _hr_y, _hr_c, _cs) then
-    if _multi_color(g_t_table_x, _cs) then
+-- the reference rect is 123,535 ~ 398,864
+function handleRedReceived()
+    local x, y, m, n;
+    local rectBCX; -- bottom center x
+    local rectBCY; -- bottom center y
+
+    keepScreen(true);
+    -- first check with passwd red, we pick the color at 260,590
+    x, y = findMultiColorInRegionFuzzy(0xdf8173,
+        "0|-55|0xcf3a50,0|274|0xc3304a,-137|0|0xc3304a,138|0|0xc3304a",
+        95, 0, 0, g_screenWidth, g_screenHeight);
+    --wLog("test", "pwd found red: x = "..x..", y = "..y);
+    if x ~= -1 and y ~= -1 then
+        rectBCX = x;
+        rectBCY = y + (864 - 590);
         -- find yellow color in region, if found, the red has opened
-        local x, y = findColorInRegionFuzzy(0xe27966, 100, _hr_x-50, _hr_y-50, _hr_x+50, _hr_y);
-        wLog("test", "x = "..x..", y = "..y);
-        if x ~= -1 and y ~= -1 then
-            return false;
-        else
-            _click(_hr_x, _hr_y);
-            return true
+        x, y = findColorInRegionFuzzy(0xe47c67, 90,
+            rectBCX-50, rectBCY-50, rectBCX+50, rectBCY);
+        -- the color is different in short period after close
+        m, n = findColorInRegionFuzzy(0xd75e5b, 90,
+            rectBCX-50, rectBCY-50, rectBCX+50, rectBCY);
+        --wLog("test", "pwd red: x = "..x..", y = "..y..", rectBCX = "..rectBCX..", rectBCY = "..rectBCY);
+        if x == -1 and y == -1 and m == -1 and n == -1 then
+            xClick(rectBCX, rectBCY-100);
+            keepScreen(false);
+            return true;
         end
-	else
-		return false
-	end
-end
-
-function handle_hongbao_open()
-	if _is_color(_ho_x, _ho_y, _ho_c, _cs) then
-        if (g_function_enable == "0") then
-            toast("程序延时中,请勿手点红包", 1);
-            mSleep(math.random(1000,2000));
-            _click(_ho_x, _ho_y);
-        else
-            _click(_ho_x, _ho_y);
-        end
-
-		return true
     else
-        if _is_color(_hi_x, _hi_y, _hi_c, _cs) then
-            if (g_function_enable == "0") then
-                toast("程序延时中,请勿手点红包", 1);
-                mSleep(math.random(1500,3000));
-                _click(_hi_x, _hi_y);
-            else
-                _click(_hi_x, _hi_y);
+        -- first check with normal red, we pick the color at 260,588
+        x, y = findMultiColorInRegionFuzzy(0xd8746b,
+            "0|-53|0xcf3a50,0|276|0xc3304a,-137|0|0xc3304a,138|0|0xc3304a",
+            99, 0, 0, g_screenWidth, g_screenHeight);
+        wLog("test", "nrl found red: x = "..x..", y = "..y);
+        if x ~= -1 and y ~= -1 then
+            rectBCX = x;
+            rectBCY = y + (864 - 588);
+            -- find yellow color in region, if found, the red has opened
+            x, y = findColorInRegionFuzzy(0xdf8274, 90,
+                rectBCX-50, rectBCY-50, rectBCX+50, rectBCY);
+            wLog("test", "nrl red: x = "..x..", y = "..y..", rectBCX = "..rectBCX..", rectBCY = "..rectBCY);
+            if x == -1 and y == -1 then
+                xClick(rectBCX, rectBCY-100);
+                keepScreen(false);
+                return true;
             end
-
-            _click(555, 1095);
-        else
-            return false
         end
-	end
+    end
+
+    keepScreen(false);
+    return false;
 end
 
-function handle_hongbao_close()
-	if _multi_color(g_t_table, _cs) then
-		_click(_hc_x, _hc_y);
---[[
-        if ((g_function_enable == "0") and (succ_flag == 1)) then
-            dialog("躲避成功", 3);
+function handleRedOpen()
+
+    if isColor(g_clWordInputX, g_clWordInputY, g_clWordInputColor, g_degree) then
+        if (g_clickDelay == "0") then
+            toast("程序延时中,请勿手点红包", 1);
+            mSleep(math.random(1500,3000));
+            xClick(g_clWordInputX, g_clWordInputY); -- click on word
+        else
+            xClick(g_clWordInputX, g_clWordInputY);
         end
---]]
-        mSleep(1000); -- wait close finish
+        xClick(555, 1095); -- click on return button
         return true;
-	end
+    end
 
     return false;
 end
 
+function handleRedClose()
+    if multiColor(g_clTabelRedCloseValid, g_degree) then
+        --wLog("test", "close the window");
+        xClick(g_clRedCloseX, g_clRedCloseY);
+        --mSleep(1000); -- wait close finish
+        return true;
+    end
+    --wLog("test", "not found the color");
+    return false;
+end
 
 init(0);
 mSleep(1000);
 
---[[
-serial_validate();
-
-current_time = os.time();
-expire_time = os.time{year=2016, month=7, day=10, hour=0};
--- dialog("c = "..current_time..", e = "..expire_time);
-if (current_time > expire_time) then
-    lua_exit();
-end
---]]
-
-p_init();
+appInit();
 initLog("test", 0);
 
 while true do
+    local r;
 
+    wLog("test", "call handleRedOpen");
     while true do
-        r = handle_hongbao_received();
+        r = handleRedReceived();
         if r == true then
             mSleep(500);
             break;
@@ -303,16 +225,16 @@ while true do
         mSleep(200);
     end
 
-    r = handle_hongbao_open();
-    if r == true then
-		--touchDown()
-        mSleep(500);
-        succ_flag = 1;
-    end
+    wLog("test", "call handleRedOpen");
+    r = handleRedOpen();
+    --if r == true then
+        mSleep(2000);
+    --end
 
-    r = handle_hongbao_close();
+    wLog("test", "call handleRedClose");
+    r = handleRedClose();
     if r == true then
-        succ_flag = 0;
+        mSleep(2000);
     end
 
 	mSleep(200);
