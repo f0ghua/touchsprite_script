@@ -6,7 +6,7 @@ Description:
 	_cs 	颜色相似度
 --]]
 
-local g_version = 'v1.0.01'
+local g_version = 'v1.0.02'
 
 local g_degree = 99;
 local g_screenWidth, g_screenHeight;
@@ -141,36 +141,48 @@ function handleRedReceived()
     if x ~= -1 and y ~= -1 then
         rectBCX = x;
         rectBCY = y + (864 - 590);
-        -- find yellow color in region, if found, the red has opened
-        x, y = findColorInRegionFuzzy(0xe47c67, 90,
-            rectBCX-50, rectBCY-50, rectBCX+50, rectBCY);
-        -- the color is different in short period after close
-        m, n = findColorInRegionFuzzy(0xd75e5b, 90,
-            rectBCX-50, rectBCY-50, rectBCX+50, rectBCY);
-        --wLog("test", "pwd red: x = "..x..", y = "..y..", rectBCX = "..rectBCX..", rectBCY = "..rectBCY);
-        if x == -1 and y == -1 and m == -1 and n == -1 then
+
+        -- find white color in region, if found, the red has not opened
+        x, y = findColorInRegionFuzzy(0xd87786, 100,
+            rectBCX-(g_rectWidth/2), rectBCY-50, rectBCX+(g_rectWidth/2), rectBCY);
+        if x ~= -1 and y ~= -1 then
             xClick(rectBCX, rectBCY-100);
             keepScreen(false);
             return true;
         end
-    else
-        -- first check with normal red, we pick the color at 260,588
-        x, y = findMultiColorInRegionFuzzy(0xd8746b,
-            "0|-53|0xcf3a50,0|276|0xc3304a,-137|0|0xc3304a,138|0|0xc3304a",
-            99, 0, 0, g_screenWidth, g_screenHeight);
-        wLog("test", "nrl found red: x = "..x..", y = "..y);
+        x, y = findColorInRegionFuzzy(0xe7acb7, 100,
+            rectBCX-(g_rectWidth/2), rectBCY-50, rectBCX+(g_rectWidth/2), rectBCY);
         if x ~= -1 and y ~= -1 then
-            rectBCX = x;
-            rectBCY = y + (864 - 588);
-            -- find yellow color in region, if found, the red has opened
-            x, y = findColorInRegionFuzzy(0xdf8274, 90,
-                rectBCX-50, rectBCY-50, rectBCX+50, rectBCY);
-            wLog("test", "nrl red: x = "..x..", y = "..y..", rectBCX = "..rectBCX..", rectBCY = "..rectBCY);
-            if x == -1 and y == -1 then
-                xClick(rectBCX, rectBCY-100);
-                keepScreen(false);
-                return true;
-            end
+            xClick(rectBCX, rectBCY-100);
+            keepScreen(false);
+            return true;
+        end
+
+    end
+
+    -- first check with normal red, we pick the color at 260,588
+    x, y = findMultiColorInRegionFuzzy(0xd8746b,
+        "0|-53|0xcf3a50,0|276|0xc3304a,-137|0|0xc3304a,138|0|0xc3304a",
+        99, 0, 0, g_screenWidth, g_screenHeight);
+    --wLog("test", "nrl found red: x = "..x..", y = "..y);
+    if x ~= -1 and y ~= -1 then
+        rectBCX = x;
+        rectBCY = y + (864 - 588);
+
+        -- find white color in region, if found, the red has not opened
+        x, y = findColorInRegionFuzzy(0xd87786, 99,
+            rectBCX-(g_rectWidth/2), rectBCY-50, rectBCX+(g_rectWidth/2), rectBCY);
+        if x ~= -1 and y ~= -1 then
+            xClick(rectBCX, rectBCY-100);
+            keepScreen(false);
+            return true;
+        end
+        x, y = findColorInRegionFuzzy(0xe7acb7, 99,
+            rectBCX-(g_rectWidth/2), rectBCY-50, rectBCX+(g_rectWidth/2), rectBCY);
+        if x ~= -1 and y ~= -1 then
+            xClick(rectBCX, rectBCY-100);
+            keepScreen(false);
+            return true;
         end
     end
 
@@ -181,13 +193,13 @@ end
 function handleRedOpen()
 
     if isColor(g_clWordInputX, g_clWordInputY, g_clWordInputColor, g_degree) then
+
         if (g_clickDelay == "0") then
             toast("程序延时中,请勿手点红包", 1);
             mSleep(math.random(1500,3000));
-            xClick(g_clWordInputX, g_clWordInputY); -- click on word
-        else
-            xClick(g_clWordInputX, g_clWordInputY);
         end
+
+        xClick(g_clWordInputX, g_clWordInputY); -- click on word
         xClick(555, 1095); -- click on return button
         return true;
     end
@@ -215,26 +227,26 @@ initLog("test", 0);
 while true do
     local r;
 
-    wLog("test", "call handleRedOpen");
-    while true do
+    --wLog("test", "call handleRedOpen");
+    --while true do
         r = handleRedReceived();
         if r == true then
-            mSleep(500);
-            break;
+            --mSleep(500);
+            --break;
         end
-        mSleep(200);
-    end
-
-    wLog("test", "call handleRedOpen");
-    r = handleRedOpen();
-    --if r == true then
-        mSleep(2000);
+        --mSleep(200);
     --end
 
-    wLog("test", "call handleRedClose");
+    --wLog("test", "call handleRedOpen");
+    r = handleRedOpen();
+    --if r == true then
+        --mSleep(3000);
+    --end
+
+    --wLog("test", "call handleRedClose");
     r = handleRedClose();
     if r == true then
-        mSleep(2000);
+        --mSleep(2000);
     end
 
 	mSleep(200);
