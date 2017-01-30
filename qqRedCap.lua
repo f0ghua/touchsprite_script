@@ -6,7 +6,7 @@ Description:
 	_cs 	颜色相似度
 --]]
 
-local g_version = 'v1.0.02'
+local g_version = 'v1.0.03'
 
 local g_degree = 99;
 local g_screenWidth, g_screenHeight;
@@ -17,6 +17,9 @@ local g_clWordInputX, g_clWordInputY, g_clWordInputColor;
 local g_clRedCloseX, g_clRedCloseY;
 local g_clTabelRedCloseValid;
 local g_clickDelay;
+
+local TIMEOUT_CLOSE, TIMEOUT_OPEN = 5, 20; -- 1s, 4s
+local g_timeout, g_closeTimeout = 0, 0;
 
 function appInit()
     local sz = require("sz");
@@ -128,7 +131,7 @@ end
 
 -- the reference rect is 123,535 ~ 398,864
 function handleRedReceived()
-    local x, y, m, n;
+    local x, y;
     local rectBCX; -- bottom center x
     local rectBCY; -- bottom center y
 
@@ -193,7 +196,6 @@ end
 function handleRedOpen()
 
     if isColor(g_clWordInputX, g_clWordInputY, g_clWordInputColor, g_degree) then
-
         if (g_clickDelay == "0") then
             toast("程序延时中,请勿手点红包", 1);
             mSleep(math.random(1500,3000));
@@ -218,6 +220,62 @@ function handleRedClose()
     return false;
 end
 
+local SWITCH_METATABLE = {
+    __index = function(t, k)
+        return rawget(t, "__default")
+    end,
+}
+
+function switchGenerator(tbl)
+    tbl = tbl or {}
+    setmetatable(tbl, SWITCH_METATABLE)
+    return function(case)
+        return tbl[case]()
+    end, tbl
+end
+
+local STATE_IDLE, STATE_RCVED = 0, 1;
+local g_state = STATE_IDLE;
+
+function handleDefault()
+    wLog("test", "call handleDefault");
+end
+
+function handleStateIdle()
+    if (handleRedReceived() == true) then
+        g_state = STATE_RCVED;
+        g_timeout = 0;
+        g_closeTimeout = TIMEOUT_CLOSE;
+        wLog("test", "handleStateIdle: state switch to "..g_state);
+    end
+end
+
+function handleStateReceived()
+    if isColor(g_clWordInputX, g_clWordInputY, g_clWordInputColor, g_degree) then
+        g_closeTimeout = g_closeTimeout + TIMEOUT_OPEN;
+        wLog("test", "handleStateReceived: timeout change to "..g_closeTimeout);
+        if (g_clickDelay == "0") then
+            toast("程序延时中,请勿手点红包", 1);
+            mSleep(math.random(1500,3000));
+        end
+
+        xClick(g_clWordInputX, g_clWordInputY); -- click on word
+        xClick(555, 1095); -- click on return button
+    end
+
+    if (handleRedClose() == true) then
+        g_state = STATE_IDLE;
+        wLog("test", "handleStateReceived: state switch to "..g_state);
+    end
+end
+
+local switchStateFunc, tblStateMachine = switchGenerator({
+        [STATE_IDLE] = handleStateIdle,
+        [STATE_RCVED] = handleStateReceived,
+        __default = handleDefault,
+    });
+
+
 init(0);
 mSleep(1000);
 
@@ -225,30 +283,16 @@ appInit();
 initLog("test", 0);
 
 while true do
-    local r;
-
-    --wLog("test", "call handleRedOpen");
-    --while true do
-        r = handleRedReceived();
-        if r == true then
-            --mSleep(500);
-            --break;
-        end
-        --mSleep(200);
-    --end
-
-    --wLog("test", "call handleRedOpen");
-    r = handleRedOpen();
-    --if r == true then
-        --mSleep(3000);
-    --end
-
-    --wLog("test", "call handleRedClose");
-    r = handleRedClose();
-    if r == true then
-        --mSleep(2000);
+    -- prevent from no chance to click on the close window
+    if (g_state == STATE_RCVED) and (g_timeout > g_closeTimeout) then
+        g_timeout = 0;
+        g_state = STATE_IDLE;
+        wLog("test", "Timeout : state switch to "..g_state);
+    else
+        g_timeout = g_timeout + 1;
     end
 
+    switchStateFunc(g_state);
 	mSleep(200);
 end
 
