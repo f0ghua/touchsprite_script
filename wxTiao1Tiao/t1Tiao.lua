@@ -140,7 +140,7 @@ local x_block_c, y_block_c;
 
 -- first scan, to find the block for next step
 local y_1stScan;
-for y = 400, 500 do
+for y = 400, 550 do
 	local bk = false;
 	for x = 0, _screen_w-1, (_screen_w)/10 do
 		if _is_color_rgb(x, y, c_r, c_g, c_b, d_r, d_g, d_b)~=true then
