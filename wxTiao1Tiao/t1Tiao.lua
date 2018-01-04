@@ -95,15 +95,11 @@ mSleep(1000);
 p_init();
 initLog(LOG_FILE_NAME, 0);
 
---x, y, x1, y1, x2, y2, x3, y3;
---c1, c2, c3;
+local x1, y1, x2, y2, x3, y3;
+local c1, c2, c3;
+
 r1, g1, b1 = getColorRGB(_ht_x, _ht_y);
 
---[[
-local p1 = getColor(0, 1135);
-local p2 = getColor(300, 1135);
-wLog("test", "p1 = "..p1..", p2 = "..p2);
---]]
 x2, y2 = _hb_x, _hb_y;
 x3, y3 = _hb_x+(_screen_w/2), _hb_y;
 c2 = getColor(x2, y2);
