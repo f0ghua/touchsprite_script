@@ -28,6 +28,34 @@ function p_init()
     else
         error("您的设备分辨率不被支持");
     end
+	
+    ui_table = {
+        ["style"]   = "default",
+        ["width"]   = w,
+        ["height"]  = h,
+        ["config"]  = "wxt1t_data.dat",
+        ["timer"]   = 360,
+
+        views = {
+            {
+                ["type"] = "Label",
+                ["text"] = "wx tiao1tiao"..version,
+                ["size"] = 25,
+                ["align"] = "center",
+                ["color"] = "0,0,255",
+            },
+            {
+                ["type"] = "Edit",
+                ["size"] = 22,
+                ["align"] = "left",
+                ["color"] = "103,8,123",
+				["prompt"] = "请输入一个数字",
+				["text"] = "5",
+            },
+        }
+    }
+    json_str = json.encode(ui_table);
+    ret, inputSteps = showUI(json_str);	
 end
 
 function _click(...)
@@ -83,115 +111,111 @@ function _xprintf(s, ...)
 	return wLog(LOG_FILE_NAME, s:format(...));
 end
 
+function _do_jump()
+	keepScreen(true);
+	local x1, y1, x2, y2, x3, y3;
+	local c1, c2, c3;
+
+	r1, g1, b1 = getColorRGB(_ht_x, _ht_y);
+
+	x2, y2 = _hb_x, _hb_y;
+	x3, y3 = _hb_x+(_screen_w/2), _hb_y;
+	c2 = getColor(x2, y2);
+	c3 = getColor(x3, y3);
+	while (c2 ~= c3) do
+		x2 = x2 + 10;
+		x3 = x3 + 10;
+		c2 = getColor(x2, y2);
+		c3 = getColor(x3, y3);
+	end
+
+	local x_qz, y_qz = findImage("qizi.png", 0, 0, _screen_w, _screen_h);
+	if x_qz ~= -1 and y_qz ~= -1 then
+		_xprintf("image %d, %d", x_qz, y_qz);
+	else
+		toast('picture is not found!');        
+	end
+
+	local x_qzC = x_qz + QIZI_IMAGE_WIDTH/2;
+
+	r2, g2, b2 = getColorRGB(x2, y2);
+	c_r = (r2 + r1)/2;
+	c_g = (g2 + g1)/2;
+	c_b = (b2 + b1)/2;
+
+	d_r = math.abs((r2 - r1)/2);
+	d_g = math.abs((g2 - g1)/2);
+	d_b = math.abs((b2 - b1)/2);
+
+	local x_block_c, y_block_c;
+
+	-- first scan, to find the block for next step
+	local y_1stScan;
+	for y = 400, 550 do
+		local bk = false;
+		for x = 0, _screen_w-1, (_screen_w)/10 do
+			-- we should skip the x area which in qizi image, since the image maybe higher than block
+			if math.abs(x - x_qzC)>QIZI_IMAGE_MAX_WIDTH/2 and _is_color_rgb(x, y, c_r, c_g, c_b, d_r, d_g, d_b)~=true then
+				_xprintf("found point y = %d", y);
+				y_1stScan = y;
+				bk = true;
+				break;
+			end
+		end	
+		if bk == true then
+			break;
+		end
+	end
+
+	-- second scan, to find the top left point of the block
+	for y = y_1stScan-5, y_1stScan+5 do
+		local bk = false;
+		for x = 0, _screen_w-1, 3 do
+			if math.abs(x - x_qzC)>QIZI_IMAGE_MAX_WIDTH/2 and _is_color_rgb(x, y, c_r, c_g, c_b, d_r, d_g, d_b)~=true then
+				_xprintf("found point x = %d, y = %d", x, y);
+				x_block_c, y_block_c = x, y;
+				bk = true;
+				break;
+			end
+		end	
+		if bk == true then
+			break;
+		end
+	end
+
+	-- third scan, to find the top center point of the block
+	local x;
+	x = x_block_c;
+	x1 = x;
+	while _is_color_rgb(x, y_block_c, c_r, c_g, c_b, d_r, d_g, d_b)~=true do
+		x = x + 1;
+	end
+	x_block_c = math.floor((x+x1)/2);
+	_xprintf("x = %d, x1 = %d, x_block_c = %d", x, x1, x_block_c);
+
+	keepScreen(false);
+	-- lua_exit(); 
+
+	local len = math.abs(x_qzC - x_block_c)/math.sqrt(3)*2;
+	_xprintf("len, x_qzC, x_blockC = %d, %d, %d", len, x_qzC, x_block_c);
+
+	touchDown(x_qzC, y_qz);
+	mSleep(len*2.35);
+	touchUp(x_qzC, y_qz);
+	
+end
+
+
 init(0);
 mSleep(1000);
-
---[[
-
---]]
 
 p_init();
 initLog(LOG_FILE_NAME, 0);
 
-local x1, y1, x2, y2, x3, y3;
-local c1, c2, c3;
-
-r1, g1, b1 = getColorRGB(_ht_x, _ht_y);
-
-x2, y2 = _hb_x, _hb_y;
-x3, y3 = _hb_x+(_screen_w/2), _hb_y;
-c2 = getColor(x2, y2);
-c3 = getColor(x3, y3);
-while (c2 ~= c3) do
-    x2 = x2 + 10;
-    x3 = x3 + 10;
-    c2 = getColor(x2, y2);
-    c3 = getColor(x3, y3);
+for i=0, inputSteps, 1 do
+	_do_jump();
+	mSleep(3000);
 end
---wLog("test", "x2 = "..x2..", y2 = "..y2..", c2 = "..c2);
-
-local x_qz, y_qz = findImage("qizi.png", 0, 0, _screen_w, _screen_h);
-if x_qz ~= -1 and y_qz ~= -1 then
-	_xprintf("image %d, %d", x_qz, y_qz);
-else
-    toast('picture is not found!');        
-end
-
-local x_qzC = x_qz + QIZI_IMAGE_WIDTH/2;
-local x_from, x_to;
-if x_qz < _screen_w/2 then
-	x_from, x_to = 320, 550;
-else
-	x_from, x_to = 150, 320;
-end
-
-r2, g2, b2 = getColorRGB(x2, y2);
-c_r = (r2 + r1)/2;
-c_g = (g2 + g1)/2;
-c_b = (b2 + b1)/2;
-
-d_r = math.abs((r2 - r1)/2);
-d_g = math.abs((g2 - g1)/2);
-d_b = math.abs((b2 - b1)/2);
-
-local x_block_c, y_block_c;
-
--- first scan, to find the block for next step
-local y_1stScan;
-for y = 400, 550 do
-	local bk = false;
-	for x = 0, _screen_w-1, (_screen_w)/10 do
-		-- we should skip the x area which in qizi image, since the image maybe higher than block
-		if math.abs(x - x_qzC)>QIZI_IMAGE_MAX_WIDTH/2 and _is_color_rgb(x, y, c_r, c_g, c_b, d_r, d_g, d_b)~=true then
-			_xprintf("found point y = %d", y);
-			y_1stScan = y;
-			bk = true;
-			break;
-		end
-	end	
-	if bk == true then
-		break;
-	end
-end
-
--- second scan, to find the top left point of the block
-for y = y_1stScan-5, y_1stScan+5 do
-	local bk = false;
-	for x = 0, _screen_w-1, 3 do
-		if math.abs(x - x_qzC)>QIZI_IMAGE_MAX_WIDTH/2 and _is_color_rgb(x, y, c_r, c_g, c_b, d_r, d_g, d_b)~=true then
-			_xprintf("found point x = %d, y = %d", x, y);
-			x_block_c, y_block_c = x, y;
-			bk = true;
-			break;
-		end
-	end	
-	if bk == true then
-		break;
-	end
-end
-
--- third scan, to find the top center point of the block
-local x;
-x = x_block_c;
-x1 = x;
-while _is_color_rgb(x, y_block_c, c_r, c_g, c_b, d_r, d_g, d_b)~=true do
-	x = x + 1;
-end
-x_block_c = math.floor((x+x1)/2);
-_xprintf("x = %d, x1 = %d, x_block_c = %d", x, x1, x_block_c);
-
--- lua_exit(); 
-
-local len = math.abs(x_qzC - x_block_c)/math.sqrt(3)*2;
-_xprintf("len, x_qzC, x_blockC = %d, %d, %d", len, x_qzC, x_block_c);
-
-touchDown(x_qzC, y_qz);
-mSleep(len*2.35);
-touchUp(x_qzC, y_qz);
-
-
-
-
 
 
 
