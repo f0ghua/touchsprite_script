@@ -28,7 +28,7 @@ function p_init()
     else
         error("您的设备分辨率不被支持");
     end
-	
+--[[	
     ui_table = {
         ["style"]   = "default",
         ["width"]   = w,
@@ -56,6 +56,7 @@ function p_init()
     }
     json_str = json.encode(ui_table);
     ret, inputSteps = showUI(json_str);	
+--]]
 end
 
 function _click(...)
@@ -212,9 +213,10 @@ mSleep(1000);
 p_init();
 initLog(LOG_FILE_NAME, 0);
 
-for i=0, inputSteps, 1 do
+while true do
 	_do_jump();
-	mSleep(3000);
+	mSleep(2000);
+	mSleep(math.random(1000,3000));
 end
 
 
