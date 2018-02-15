@@ -38,7 +38,7 @@ function appInit()
         --_ho_x, _ho_y, _ho_c = 320, 715, 0xddbc84;
         g_clRedCloseX, g_clRedCloseY = 554, 171;
         g_clTabelRedCloseValid = {
-            {554, 171, 0x972438}, -- x
+            {554, 195, 0x972438}, -- x
             {424, 949, 0xdf8274} -- >
         };
         g_degree = 99;
@@ -94,6 +94,11 @@ function appInit()
     }
     jsonStr = json.encode(uiTable);
     ret1, g_clickDelay, ret2, ret3 = showUI(jsonStr);
+end
+
+function _xprintf(s, ...)
+	return toast(s:format(...));
+	-- return wLog(LOG_FILE_NAME, s:format(...));
 end
 
 function xClick(...)
@@ -193,6 +198,27 @@ function handleRedReceived()
     return false;
 end
 
+function handleRedReceived_750_407()
+    local x, y;
+    local rectBCX; -- bottom center x
+    local rectBCY; -- bottom center y
+
+    keepScreen(true);
+    -- first check with passwd red, we pick the color at 260,590
+    x, y = findMultiColorInRegionFuzzy(0xfed58b,
+        "0|-1|0xfed48b,0|1|0xe72655,-6|0|0xfed58b,5|0|0xfed58b",
+        95, 0, 0, g_screenWidth, g_screenHeight);
+    -- _xprintf("pwd found red: x = "..x..", y = "..y);
+    if x ~= -1 and y ~= -1 then
+		xClick(x, y);
+		keepScreen(false);
+		return true;
+    end
+
+    keepScreen(false);
+    return false;
+end
+
 function handleRedOpen()
 
     if isColor(g_clWordInputX, g_clWordInputY, g_clWordInputColor, g_degree) then
@@ -211,6 +237,17 @@ end
 
 function handleRedClose()
     if multiColor(g_clTabelRedCloseValid, g_degree) then
+        --wLog("test", "close the window");
+        xClick(g_clRedCloseX, g_clRedCloseY);
+        --mSleep(1000); -- wait close finish
+        return true;
+    end
+    --wLog("test", "not found the color");
+    return false;
+end
+
+function handleRedClose_750_407()
+	if isColor(554, 195, 0x972438, 99) then
         --wLog("test", "close the window");
         xClick(g_clRedCloseX, g_clRedCloseY);
         --mSleep(1000); -- wait close finish
@@ -242,7 +279,7 @@ function handleDefault()
 end
 
 function handleStateIdle()
-    if (handleRedReceived() == true) then
+    if (handleRedReceived_750_407() == true) then
         g_state = STATE_RCVED;
         g_timeout = 0;
         g_closeTimeout = TIMEOUT_CLOSE;
@@ -263,7 +300,7 @@ function handleStateReceived()
         xClick(555, 1095); -- click on return button
     end
 
-    if (handleRedClose() == true) then
+    if (handleRedClose_750_407() == true) then
         g_state = STATE_IDLE;
         wLog("test", "handleStateReceived: state switch to "..g_state);
     end
