@@ -204,17 +204,28 @@ function handleRedReceived_750_407()
     local rectBCY; -- bottom center y
 
     keepScreen(true);
-    -- first check with passwd red, we pick the color at 260,590
+    -- no password, check yellow cycle, we pick the color at 283,xxx
     x, y = findMultiColorInRegionFuzzy(0xfed58b,
         "0|-1|0xfed48b,0|1|0xe72655,-6|0|0xfed58b,5|0|0xfed58b",
         95, 0, 0, g_screenWidth, g_screenHeight);
-    -- _xprintf("pwd found red: x = "..x..", y = "..y);
+    --_xprintf("pwd found red: x = "..x..", y = "..y);
     if x ~= -1 and y ~= -1 then
 		xClick(x, y);
 		keepScreen(false);
 		return true;
     end
-
+	
+	-- with password, check yellow cycle, we pick the color at 283,xxx	
+    x, y = findMultiColorInRegionFuzzy(0xfed58b,
+        "-1|0|0xfed58b,-2|0|0xfece89,-39|18|0xf58f76,38|18|0xf58f76",
+        95, 0, 0, g_screenWidth, g_screenHeight);	
+    --_xprintf("pwd found red: x = "..x..", y = "..y);
+    if x ~= -1 and y ~= -1 then
+		xClick(x, y);
+		keepScreen(false);
+		return true;
+    end
+	
     keepScreen(false);
     return false;
 end
